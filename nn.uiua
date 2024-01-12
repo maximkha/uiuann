@@ -1,0 +1,64 @@
+MM ← ⍉⊠(/+×)
+Relu ← ×>0.
+Bias ← ⍜⍉+
+
+PUb ← °□⊢:↘1.
+P ← °□⊢.
+OddElem ← ▽◿2⇡⧻.
+
+Zeros ← ⊠(0;;)∩⇡⊙;PUb:PUb
+Uniform ← ∵(⚂;)Zeros
+KaimingWInit ← ××2-0.5Uniform:√÷:1⊢.
+KaimingBInit ← ⊢××2-0.5Uniform⇌⊂¤1⊢⇌:√÷:1⊢.
+
+Net ← ≡(□KaimingWInit):≡(□KaimingBInit).◫2
+
+# apply linear + bias
+ApplyLinearBias ← ⊂□Bias⊙:⊙⊙:⊙⊙⊙PUb MM⊙P:⊙PUb
+# apply relu
+ApplyReLU ← ⊂□Relu P
+
+# grads weights outs biases lr -> weights biases
+# ApplyGrads ← +⊙:¯:+¯⊙:×⊙::×⊙:.:⊙:⊙⊙:⊙⊙⊙:∵(□/+⍉°□):∵(□MM ⍉°□:°□)⊙OddElem⊙:⊙⊙:.
+ApplyGrads ← +⊙:¯:+¯⊙:×⊙::×:⊙⍜⊙:,⊙⊙⊙:∵(□/+⍉°□):∵(□MM ⍉°□:°□)⊙OddElem⊙:⊙⊙:.
+
+# ys outs weights -> grads weights outs
+BoxedDMSE ← ⊙:¤□⍉-⊙PUb⊙⊙:⊙⊙.
+
+# grads weights -> grads weights (popped)
+BackLinear ← ⊂□MM⍉:⍉:⊙:P⊙PUb
+
+# TODO: check multrans (most likely correct)
+# grads weights inputs -> grads weights inputs
+BackReLU ← ⊂□×⍉⊙PUb≥0:⊙:⊙⊙PUb⊙⊙(↘1)
+
+# weights biases xs -> outs weights biases
+# Forward ← ⊙;⊙;ApplyLinearBias⍢(ApplyReLU ApplyLinearBias)(>1⊢△:⊙.)⊙⊙:⊙.⊙⊙.:⊙:
+Forward ← ⊙;⊙;ApplyLinearBias⍢(ApplyReLU ApplyLinearBias)(>1⊢△:⊙.)⊙⊙,⍜:,⊙:
+
+# outs weights biases ys lr -> weights biases
+Backward ← ⇌:⇌ApplyGrads⊙;⊙;⇌⍢(BackReLU BackLinear)(>1⊢△:⊙.)BoxedDMSE⊙⊙:⊙.⊙⊙⇌⊙⊙⊙⇌:⊙:⊙⊙:
+
+# xs ys lr
+SaveXYLr ← ⊙⍜⊙⊙:⊙⊙⊙,⊙⊙.⊙⊙⊙,
+# SaveXYLr ← ⊙⊙⊙⊙:⊙⊙⊙:⊙⊙⊙⊙⊙:⊙⊙.⊙⊙⊙.⊙⊙⊙⊙.
+
+# weights biases xs ys lr -> weights biases
+ForwardBack ← Backward Forward
+# weights biases xs ys lr -> weights biases xs ys lr
+Opt ← ForwardBack SaveXYLr
+Predict ← ⊢Forward
+
+# 0.01
+# [[1][2][3][¯4]]
+# ¤□⋯⇡4
+# Net[2 16 16 16 1]
+# ⍥Opt750
+# Predict
+
+0.01
+[[0][1][1][0]]
+¤□⋯⇡4
+Net[2 8 1]
+⍥Opt1500
+Predict
